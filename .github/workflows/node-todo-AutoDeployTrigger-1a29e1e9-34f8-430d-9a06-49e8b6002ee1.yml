@@ -1,0 +1,48 @@
+name: Trigger auto deployment for node-todo
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/node-todo-AutoDeployTrigger-1a29e1e9-34f8-430d-9a06-49e8b6002ee1.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.NODETODO_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.NODETODO_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.NODETODO_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: 
+          registryUsername: ${{ secrets.NODETODO_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.NODETODO_REGISTRY_PASSWORD }}
+          containerAppName: node-todo
+          resourceGroup: unnati-28-10-24
+          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
